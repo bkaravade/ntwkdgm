@@ -1,0 +1,260 @@
+<html>
+
+<head>
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous"> -->
+
+    <style>
+        /* rect {
+            stroke-width: 2;
+            stroke: #b4ffbc;
+            
+        } */
+
+        .inline-requirement {
+            display: inline;
+            margin-right: 30px;
+        }
+
+        svg {
+            margin-top: 50px;
+        }
+    </style>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct" crossorigin="anonymous"></script> -->
+</head>
+
+
+<body>
+
+    <h4 class="inline-requirement">Network Diagram: Name Of Project </h4>
+    <button id="zoomInBtn" onclick="zoomIn()">zoomIn</button>
+    <button id="zoomOutBtn" onclick="zoomOut()">zoomOut</button>
+    <button id="criticalBtn" onclick="showCriticalPath()">Critical Path</button>
+    <button id="printBtn" onclick="printSvg()">Print</button>
+
+    <hr>
+    <svg id="svgContainer" xmlns="http://www.w3.org/2000/svg">
+    </svg>
+
+    <h3 id="size"></h3>
+    <script>
+        // Initial SVG Playground Sizes
+        var InitailWidth = 550;
+        var InitailHeight = 210;
+        var InitialHorizon = 35;
+        // console.log(json);
+        // Initial Rectangle Size
+        var rectWidth = 300;
+        var rectHeight = 75;
+
+        // Initial zoom level
+        var zoomLevel = 1;
+        var zoomIncrement = 0.1;
+
+        window.onload = initNetwork(InitailWidth, InitailHeight);
+
+        function initNetwork(svgWidth, svgHeight) {
+
+            // alert(rectWidth+" "+rectHeight );
+            var numberOfRectangles = 8, x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+
+            var svgContainer = document.getElementById("svgContainer");
+            svgContainer.setAttribute("width", numberOfRectangles * svgWidth + 150);//600);
+            svgContainer.setAttribute("height", numberOfRectangles * svgHeight);//250);
+
+            var maintainX1 = 0, maintainX2 = 0, maintainY1 = 0, maintainY2 = 0;
+
+
+            for (var i = 0; i < numberOfRectangles; i++) {
+
+                createActivity(i, 0, [0]);
+                if (i == 1) {
+                    createActivity(i, 2, [3, 4, 6]);
+                }
+                else if (i == 3) {
+                    createActivity(i, 2, [4,5]);      
+                }
+
+            }
+        }
+
+        function createActivity(activityIndex, activityLevel, forwardReference) {
+
+            var rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", (rectWidth + 80) * activityIndex);//480 * i);
+            rect.setAttribute("y", rectHeight * (activityLevel));//);
+            rect.setAttribute("width", rectWidth);
+            rect.setAttribute("height", rectHeight);
+            // For Normal activity
+            rect.setAttribute("fill", "white");
+            rect.setAttribute("stroke", "black");
+
+            // Activity With Zero Float Or Part of Critical Path
+            // rect.setAttribute("fill", "#ffb4b4");
+            // rect.setAttribute("stroke", "red");
+
+            // Completed Activity
+            // rect.setAttribute("fill", "#b4ffbc");
+            // rect.setAttribute("stroke", "green");
+
+            rect.setAttribute("stroke-width", "2");
+            rect.setAttribute("onclick", "alertOne(" + activityIndex + activityLevel + ")");
+            svgContainer.appendChild(rect);
+
+
+            var text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("x", ((rectWidth + 80) * activityIndex) + 55);
+            text.setAttribute("y", rectHeight * (activityLevel) + 15);//(80 * i) + 20);
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("fill", "black");
+
+            var textNode = document.createTextNode("Rectangle No: " + (activityIndex + 1));
+            text.appendChild(textNode);
+            svgContainer.appendChild(text);
+
+            if (activityIndex > 0) {
+                if (forwardReference.length == 1) {
+                    x1 = ((rectWidth + 80) * activityIndex) - 80;
+                    x2 = ((rectWidth + 80) * activityIndex);
+                    y1 = InitialHorizon * 1;//40 * (i + 1);
+
+                    if (activityLevel == 0) {
+                        y2 = InitialHorizon * 1;
+                    }
+                    else {
+                        y2 = (rectHeight) * activityLevel;
+                    }
+                    createArrow(x1, y1, x2, y2);
+                }
+                else {
+
+                    x1 = ((rectWidth + 80) * activityIndex) - 80;
+                    x2 = ((rectWidth + 80) * activityIndex);
+                    y1 = InitialHorizon * 1;//40 * (i + 1);
+
+                    if (activityLevel == 0) {
+                        y2 = InitialHorizon * 1;
+                    }
+                    else {
+                        y2 = ((rectHeight) * activityLevel)+InitialHorizon;
+                    }
+                    createArrow(x1, y1, x2, y2);
+
+                    y1 = y2;
+                    for (var j = 0; j < forwardReference.length; j++) {
+                        x1 = x2 + rectWidth;
+                        var tempX2 =((rectWidth + 80) * forwardReference[j]);
+                        
+                        if (activityLevel == 0) {
+                            y2 = InitialHorizon * 1;
+                        } else {
+                            y2 = (InitialHorizon - 10) * activityLevel;
+                        }
+                        
+                        createArrow(x1, y1, tempX2, y2);
+                    }
+                }
+            }
+        }
+
+        function createArrow(startX, startY, endX, endY) {
+
+            var shaft = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            shaft.setAttribute("x1", startX);
+            shaft.setAttribute("y1", startY);
+            shaft.setAttribute("x2", endX);
+            shaft.setAttribute("y2", endY);
+            shaft.setAttribute("stroke", "black");
+            shaft.setAttribute("stroke-width", "2");
+
+
+            var arrowheadSize = 10;
+            var angle = Math.atan2(endY - startY, endX - startX);
+            var arrowheadX1 = endX - arrowheadSize * Math.cos(angle - Math.PI / 6);
+            var arrowheadY1 = endY - arrowheadSize * Math.sin(angle - Math.PI / 6);
+            var arrowheadX2 = endX - arrowheadSize * Math.cos(angle + Math.PI / 6);
+            var arrowheadY2 = endY - arrowheadSize * Math.sin(angle + Math.PI / 6);
+
+            var arrowhead = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+            arrowhead.setAttribute("points", endX + "," + endY + " " + arrowheadX1 + "," + arrowheadY1 + " " + arrowheadX2 + "," + arrowheadY2);
+            arrowhead.setAttribute("fill", "black");
+
+            svgContainer.appendChild(shaft);
+            svgContainer.appendChild(arrowhead);
+        }
+
+        function clearSvg() {
+            const svg = document.getElementById('svgContainer');
+            while (svg.firstChild) {
+                svg.removeChild(svg.firstChild);
+            }
+        }
+
+        function localSizeAdjustment(val) {
+            if (val == 1) {
+                InitailWidth = InitailWidth + 100;
+                InitailHeight = InitailHeight + 40;
+                InitialHorizon = InitialHorizon + 5;//20;
+
+                rectWidth = rectWidth + 50;
+                rectHeight = rectHeight + 20;
+            }
+            else {
+                InitailWidth = InitailWidth - 100;
+                InitailHeight = InitailHeight - 40;
+                InitialHorizon = InitialHorizon - 5;//20;
+
+
+                rectWidth = rectWidth - 50;
+                rectHeight = rectHeight - 20;
+            }
+        }
+
+        function alertOne(val) {
+            alert("Rectangle No From New Function: " + (val + 1));
+        }
+
+
+
+        function zoomIn() {
+            clearSvg();
+            zoomLevel += zoomIncrement;
+            updateViewBox();
+            localSizeAdjustment(1);
+            initNetwork(InitailWidth, InitailHeight);
+        }
+
+        function zoomOut() {
+            if (zoomLevel > zoomIncrement) {
+                clearSvg();
+                zoomLevel -= zoomIncrement;
+                updateViewBox();
+                localSizeAdjustment(0);
+                initNetwork(InitailWidth, InitailHeight);
+            }
+        }
+
+        function updateViewBox() {
+            var viewBoxWidth = svgContainer.width.baseVal.value / zoomLevel;
+            var viewBoxHeight = svgContainer.height.baseVal.value / zoomLevel;
+            svgContainer.setAttribute("viewBox", `0 0 ${viewBoxWidth} ${viewBoxHeight}`);
+        }
+
+        function showCriticalPath() {
+            alert("Critical Path");
+        }
+
+        function printSvg() {
+            var svg = document.getElementById('svgContainer');
+
+            var printWindow = window.open('', '_blank');
+            printWindow.document.write('<html><head><title>Print SVG</title></head><body>');
+            printWindow.document.write(svg.outerHTML);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+    </script>
+</body>
+
+</html>
